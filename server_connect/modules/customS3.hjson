@@ -77,8 +77,8 @@
           { "name": "name", "optionName": "name", "title": "Name", "type": "text", "required": true, "defaultValue": "s3download", "help": "This will be the name used in output" },
           { "name": "bucket", "optionName": "bucket", "title": "Bucket", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the name of the S3 bucket." },
           { "name": "key", "optionName": "key", "title": "Key", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the key for the object in S3." },
-          { "name": "expires", "optionName": "expires", "title": "Expires In (seconds)", "type": "text", "required": false, "defaultValue": 300, "serverDataBindings": true "help": "Enter the expiration time for the signed URL in seconds. Defaults to 300 seconds (5 minutes)." },
-          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "","serverDataBindings": true, "help": "Enter the custom endpoint for the signed URL." },
+          { "name": "expires", "optionName": "expires", "title": "Expires In (seconds)", "type": "text", "required": false, "defaultValue": 300, "serverDataBindings": true, "help": "Enter the expiration time for the signed URL in seconds. Defaults to 300 seconds (5 minutes)." },
+          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "", "serverDataBindings": true, "help": "Enter the custom endpoint for the signed URL." },
           { "name": "forcePathStyle", "optionName": "forcePathStyle", "title": "Force Path Style", "defaultValue": false, "type": "boolean" }
         ]
       },
