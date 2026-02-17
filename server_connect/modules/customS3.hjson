@@ -29,7 +29,7 @@
           { "name": "bucket", "optionName": "bucket", "title": "Bucket", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the name of the S3 bucket." },
           { "name": "key", "optionName": "key", "title": "Key", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the key for the object in S3." },
           { "name": "expires", "optionName": "expires", "title": "Expires In (seconds)", "type": "number", "required": false, "defaultValue": 300, "help": "Enter the expiration time for the signed URL in seconds. Defaults to 300 seconds (5 minutes)." },
-          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "", "serverDataBindings": true, "help": "Enter the custom endpoint for the signed URL." }
+          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "", "serverDataBindings": true, "help": "Enter the custom endpoint for the signed URL." },
           { "name": "forcePathStyle", "optionName": "forcePathStyle", "title": "Force Path Style", "defaultValue": false, "type": "boolean" }
         ]
       },
@@ -128,7 +128,7 @@
           { "name": "key", "optionName": "key", "title": "Key", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the key for the object in S3." },
           { "name": "contentType", "optionName": "contentType", "title": "Content Type", "type": "text", "required": false, "serverDataBindings": true, "help": "Content type." },
           { "name": "contentDisposition", "optionName": "contentDisposition", "title": "Content Disposition", "type": "text", "required": false, "serverDataBindings": true, "help": "Content type." },
-          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "","serverDataBindings": true, "help": "Enter the custom endpoint for the signed URL." }
+          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "","serverDataBindings": true, "help": "Enter the custom endpoint for the signed URL." },
           { "name": "forcePathStyle", "optionName": "forcePathStyle", "title": "Force Path Style", "defaultValue": false, "type": "boolean" }
         ]
       },
@@ -136,7 +136,7 @@
         "group" : "File details",
         "variables" : [
           { "name": "file", "optionName": "file", "title": "File", "type": "text", "required": true, "serverDataBindings": true, "help": "Provide the name of input or path to file." },
-          { "name": "useFilePath", "optionName": "useFilePath", "title": "Use File Path", "defaultValue": false, "type": "boolean", "help": "Check to use file path." }
+          { "name": "useFilePath", "optionName": "useFilePath", "title": "Use File Path", "defaultValue": true, "type": "boolean", "help": "Check to use file path." }
         ]
       },
       {
@@ -156,345 +156,401 @@
     ]
   },
   {
-  type: "customS3ListFiles",
-  module: "customS3",
-  action: "s3_list_files",
-  groupTitle: "File Management",
-  groupIcon: "fas fa-folder-open comp-exec",
-  title: "Custom S3 List Files - @@var(name)@@",
-  icon: "fas fa-folder-open comp-exec",
-  usedModules: {
-    node: {
-      "@aws-sdk/client-s3": "^3.1.0"
-    }
+    "type": "customS3PutObjects",
+    "module": "customS3",
+    "action": "s3_put_objects",
+    "groupTitle": "File Management",
+    "groupIcon": "fas fa-cloud-upload-alt comp-exec",
+    "title": "Custom S3 Multiple Files Upload - @@var(name)@@",
+    "icon": "fas fa-cloud-upload-alt comp-exec",
+    "usedModules": {
+      "node": {
+        "@aws-sdk/client-s3": "^3.1.0",
+        "fs-extra": "^10.0.0",
+        "mime-types": "^2.7.0"
+      }
+    },
+    "properties": [
+      {
+        "group": "S3 Details",
+        "variables": [
+          { name: 'provider', optionName: 'provider', title: 'Provider', type: 'droplist', "required": true ,"defaultValue": "aws",
+            values: [
+              {title: 'AWS', value: 'aws', hide:['endpoint'] },
+              {title: 'Custom', value: 'custom', show:['endpoint'], hide:[]}
+            ],
+            help: 'Choose your S3 Provider.'
+          },
+          { "name": "name", "optionName": "name", "title": "Name", "type": "text", "required": true, "defaultValue": "s3upload_multiple", "help": "This will be the name used in output" },
+          { "name": "bucket", "optionName": "bucket", "title": "Bucket", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the name of the S3 bucket." },
+          { "name": "baseKey", "optionName": "baseKey", "title": "Base Key", "type": "text", "required": false, "serverDataBindings": true, "help": "Base path/prefix for all files. Example: 'uploads/' or 'uploads/2023/'" },
+          { "name": "keyPattern", "optionName": "keyPattern", "title": "Key Pattern", "type": "droplist", "required": false, "defaultValue": "filename",
+            values: [
+              {title: 'Keep Original Filename', value: 'filename'},
+              {title: 'Increment Number', value: 'increment'},
+              {title: 'Timestamp', value: 'timestamp'}
+            ],
+            help: 'How to generate the key for each file'
+          },
+          { "name": "files", "optionName": "files", "title": "Files", "type": "array", "required": true, "serverDataBindings": true, "help": "Array of file objects. Each object needs: file (required), key (optional - for custom key pattern), contentType (optional), contentDisposition (optional)" },
+          { "name": "endpoint", "optionName": "endpoint", "title": "Custom Endpoint", "type": "text", "required": false, "defaultValue": "", "serverDataBindings": true, "help": "Enter the custom endpoint URL." },
+          { "name": "forcePathStyle", "optionName": "forcePathStyle", "title": "Force Path Style", "defaultValue": false, "type": "boolean" },
+          { "name": "useFilePath", "optionName": "useFilePath", "title": "Use File Path", "defaultValue": false, "type": "boolean", "help": "If true, treats file names as file paths instead of form upload names" }
+        ]
+      },
+      {
+        "group": "S3 Credentials",
+        "variables": [
+          { "name": "accessKeyId", "optionName": "accessKeyId", "title": "Access Key ID", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the S3 provider access key ID." },
+          { "name": "secretAccessKey", "optionName": "secretAccessKey", "title": "Secret Access Key", "type": "text", "required": true, "serverDataBindings": true, "help": "Enter the S3 provider secret access key." },
+          { "name": "region", "optionName": "region", "title": "Region", "type": "text", "required": false, "serverDataBindings": true, "defaultValue": "us-east-1", "help": "Enter the S3 provider region. Defaults to 'us-east-1'." }
+        ]
+      },
+      {
+        "group": "Output",
+        "variables": [
+          { "name": "output", "optionName": "output", "title": "Output", "initValue": true, "defaultValue": false, "type": "boolean" }
+        ]
+      }
+    ]
   },
-  properties: [
-    {
-      group: "S3 Details",
-      variables: [
-        {
-          name: "provider",
-          optionName: "provider",
-          title: "Provider",
-          type: "droplist",
-          required: true,
-          defaultValue: "aws",
-          values: [
-            { title: "AWS", value: "aws", hide: ["endpoint"] },
-            { title: "Custom", value: "custom", show: ["endpoint"] }
-          ]
-        },
-        { name: "name", optionName: "name", title: "Name", type: "text", required: true, defaultValue: "s3list" },
-        { name: "bucket", optionName: "bucket", title: "Bucket", type: "text", required: true, serverDataBindings: true },
-        { name: "prefix", optionName: "prefix", title: "Prefix (Folder)", type: "text", serverDataBindings: true },
-        { name: "endpoint", optionName: "endpoint", title: "Custom Endpoint", type: "text", serverDataBindings: true },
-        { name: "forcePathStyle", optionName: "forcePathStyle", title: "Force Path Style", type: "boolean", defaultValue: false }
-      ]
+  {
+    type: "customS3ListFiles",
+    module: "customS3",
+    action: "s3_list_files",
+    groupTitle: "File Management",
+    groupIcon: "fas fa-folder-open comp-exec",
+    title: "Custom S3 List Files - @@var(name)@@",
+    icon: "fas fa-folder-open comp-exec",
+    usedModules: {
+      node: {
+        "@aws-sdk/client-s3": "^3.1.0"
+      }
     },
-    {
-      group: "S3 Credentials",
-      variables: [
-        { name: "accessKeyId", optionName: "accessKeyId", title: "Access Key ID", type: "text", required: true, serverDataBindings: true },
-        { name: "secretAccessKey", optionName: "secretAccessKey", title: "Secret Access Key", type: "text", required: true, serverDataBindings: true },
-        { name: "region", optionName: "region", title: "Region", type: "text", defaultValue: "us-east-1", serverDataBindings: true }
-      ]
-    },
-    {
-      group: "Output",
-      variables: [
-        { name: "output", optionName: "output", title: "Output", type: "boolean", defaultValue: false, initValue: true }
-      ]
-    }
-  ]
-},
-{
-  type: "s3CopyObject",
-  module: "customS3",
-  action: "s3_copy_object",
-  groupTitle: "File Management",
-  groupIcon: "fas fa-copy comp-exec",
-  title: "Custom S3 Copy Object - @@var(name)@@",
-  icon: "fas fa-copy comp-exec",
-
-  usedModules: {
-    node: {
-      "@aws-sdk/client-s3": "^3.1.0"
-    }
+    properties: [
+      {
+        group: "S3 Details",
+        variables: [
+          {
+            name: "provider",
+            optionName: "provider",
+            title: "Provider",
+            type: "droplist",
+            required: true,
+            defaultValue: "aws",
+            values: [
+              { title: "AWS", value: "aws", hide: ["endpoint"] },
+              { title: "Custom", value: "custom", show: ["endpoint"] }
+            ]
+          },
+          { name: "name", optionName: "name", title: "Name", type: "text", required: true, defaultValue: "s3list" },
+          { name: "bucket", optionName: "bucket", title: "Bucket", type: "text", required: true, serverDataBindings: true },
+          { name: "prefix", optionName: "prefix", title: "Prefix (Folder)", type: "text", serverDataBindings: true },
+          { name: "endpoint", optionName: "endpoint", title: "Custom Endpoint", type: "text", serverDataBindings: true },
+          { name: "forcePathStyle", optionName: "forcePathStyle", title: "Force Path Style", type: "boolean", defaultValue: false }
+        ]
+      },
+      {
+        group: "S3 Credentials",
+        variables: [
+          { name: "accessKeyId", optionName: "accessKeyId", title: "Access Key ID", type: "text", required: true, serverDataBindings: true },
+          { name: "secretAccessKey", optionName: "secretAccessKey", title: "Secret Access Key", type: "text", required: true, serverDataBindings: true },
+          { name: "region", optionName: "region", title: "Region", type: "text", defaultValue: "us-east-1", serverDataBindings: true }
+        ]
+      },
+      {
+        group: "Output",
+        variables: [
+          { name: "output", optionName: "output", title: "Output", type: "boolean", defaultValue: false, initValue: true }
+        ]
+      }
+    ]
   },
+  {
+    type: "s3CopyObject",
+    module: "customS3",
+    action: "s3_copy_object",
+    groupTitle: "File Management",
+    groupIcon: "fas fa-copy comp-exec",
+    title: "Custom S3 Copy Object - @@var(name)@@",
+    icon: "fas fa-copy comp-exec",
 
-  properties: [
-    {
-      variables: [
-        { name: 'name', optionName: 'name', title: 'Name', type: 'text', required: true},
-      ]
-    },
-    {
-      group: "Source Details",
-      variables: [
-        {
-          name: "srcBucket",
-          optionName: "srcBucket",
-          title: "Source Bucket",
-          type: "text",
-          required: true,
-          serverDataBindings: true
-        },
-        {
-          name: "srcKey",
-          optionName: "srcKey",
-          title: "Source Key",
-          type: "text",
-          required: true,
-          serverDataBindings: true
-        }
-      ]
+    usedModules: {
+      node: {
+        "@aws-sdk/client-s3": "^3.1.0"
+      }
     },
 
-    {
-      group: "Destination Details",
-      variables: [
-        {
-          name: "dstBucket",
-          optionName: "dstBucket",
-          title: "Destination Bucket",
-          type: "text",
-          required: true,
-          serverDataBindings: true
-        },
-        {
-          name: "dstKey",
-          optionName: "dstKey",
-          title: "Destination Key",
-          type: "text",
-          required: true,
-          serverDataBindings: true
-        }
-      ]
-    },
+    properties: [
+      {
+        variables: [
+          { name: 'name', optionName: 'name', title: 'Name', type: 'text', required: true},
+        ]
+      },
+      {
+        group: "Source Details",
+        variables: [
+          {
+            name: "srcBucket",
+            optionName: "srcBucket",
+            title: "Source Bucket",
+            type: "text",
+            required: true,
+            serverDataBindings: true
+          },
+          {
+            name: "srcKey",
+            optionName: "srcKey",
+            title: "Source Key",
+            type: "text",
+            required: true,
+            serverDataBindings: true
+          }
+        ]
+      },
 
-    {
-      group: "S3 Details",
-      variables: [
-        {
-          name: "provider",
-          optionName: "provider",
-          title: "Provider",
-          type: "droplist",
-          required: false,
-          defaultValue: "aws",
-          values: [
-            { title: "AWS", value: "aws", hide: ["endpoint"] },
-            { title: "Custom", value: "custom", show: ["endpoint"] }
-          ]
-        },
-        {
-          name: "endpoint",
-          optionName: "endpoint",
-          title: "Custom Endpoint",
-          type: "text",
-          required: false,
-          serverDataBindings: true
-        },
-        {
-          name: "forcePathStyle",
-          optionName: "forcePathStyle",
-          title: "Force Path Style",
-          type: "boolean",
-          defaultValue: false
-        }
-      ]
-    },
+      {
+        group: "Destination Details",
+        variables: [
+          {
+            name: "dstBucket",
+            optionName: "dstBucket",
+            title: "Destination Bucket",
+            type: "text",
+            required: true,
+            serverDataBindings: true
+          },
+          {
+            name: "dstKey",
+            optionName: "dstKey",
+            title: "Destination Key",
+            type: "text",
+            required: true,
+            serverDataBindings: true
+          }
+        ]
+      },
 
-    {
-      group: "S3 Credentials",
-      variables: [
-        {
-          name: "accessKeyId",
-          optionName: "accessKeyId",
-          title: "Access Key ID",
-          type: "text",
-          required: true,
-          serverDataBindings: true
-        },
-        {
-          name: "secretAccessKey",
-          optionName: "secretAccessKey",
-          title: "Secret Access Key",
-          type: "text",
-          required: true,
-          serverDataBindings: true
-        },
-        {
-          name: "region",
-          optionName: "region",
-          title: "Region",
-          type: "text",
-          required: false,
-          defaultValue: "us-east-1",
-          serverDataBindings: true
-        }
-      ]
-    },
+      {
+        group: "S3 Details",
+        variables: [
+          {
+            name: "provider",
+            optionName: "provider",
+            title: "Provider",
+            type: "droplist",
+            required: false,
+            defaultValue: "aws",
+            values: [
+              { title: "AWS", value: "aws", hide: ["endpoint"] },
+              { title: "Custom", value: "custom", show: ["endpoint"] }
+            ]
+          },
+          {
+            name: "endpoint",
+            optionName: "endpoint",
+            title: "Custom Endpoint",
+            type: "text",
+            required: false,
+            serverDataBindings: true
+          },
+          {
+            name: "forcePathStyle",
+            optionName: "forcePathStyle",
+            title: "Force Path Style",
+            type: "boolean",
+            defaultValue: false
+          }
+        ]
+      },
 
-    {
-      group: "Output",
-      variables: [
-        {
-          name: "output",
-          optionName: "output",
-          title: "Output",
-          type: "boolean",
-          defaultValue: false,
-          initValue: true
-        }
-      ]
+      {
+        group: "S3 Credentials",
+        variables: [
+          {
+            name: "accessKeyId",
+            optionName: "accessKeyId",
+            title: "Access Key ID",
+            type: "text",
+            required: true,
+            serverDataBindings: true
+          },
+          {
+            name: "secretAccessKey",
+            optionName: "secretAccessKey",
+            title: "Secret Access Key",
+            type: "text",
+            required: true,
+            serverDataBindings: true
+          },
+          {
+            name: "region",
+            optionName: "region",
+            title: "Region",
+            type: "text",
+            required: false,
+            defaultValue: "us-east-1",
+            serverDataBindings: true
+          }
+        ]
+      },
+
+      {
+        group: "Output",
+        variables: [
+          {
+            name: "output",
+            optionName: "output",
+            title: "Output",
+            type: "boolean",
+            defaultValue: false,
+            initValue: true
+          }
+        ]
+      }
+
+    ]
+  },
+  {
+    type: "customS3DeleteFile"
+    module: "customS3"
+    action: "s3_delete_file"
+    groupTitle: "File Management"
+    groupIcon: "fas fa-trash comp-exec"
+    title: "Custom S3 Delete File - @@var(name)@@"
+    icon: "fas fa-trash comp-exec"
+
+    usedModules: {
+      node: {
+        "@aws-sdk/client-s3": "^3.1.0"
+      }
     }
 
-  ]
-},
+    properties: [
 
-{
-  type: "customS3DeleteFile"
-  module: "customS3"
-  action: "s3_delete_file"
-  groupTitle: "File Management"
-  groupIcon: "fas fa-trash comp-exec"
-  title: "Custom S3 Delete File - @@var(name)@@"
-  icon: "fas fa-trash comp-exec"
+      {
+        group: "S3 Details"
+        variables: [
 
-  usedModules: {
-    node: {
-      "@aws-sdk/client-s3": "^3.1.0"
-    }
+          {
+            name: "provider"
+            optionName: "provider"
+            title: "Provider"
+            type: "droplist"
+            required: true
+            defaultValue: "aws"
+            values: [
+              { title: "AWS", value: "aws", hide: ["endpoint"] }
+              { title: "Custom", value: "custom", show: ["endpoint"] }
+            ]
+            help: "Choose your S3 Provider."
+          }
+
+          {
+            name: "name"
+            optionName: "name"
+            title: "Name"
+            type: "text"
+            required: true
+            defaultValue: "s3deletefile"
+            help: "This will be the name used in output."
+          }
+
+          {
+            name: "bucket"
+            optionName: "bucket"
+            title: "Bucket"
+            type: "text"
+            required: true
+            serverDataBindings: true
+            help: "Enter the S3 bucket name."
+          }
+
+          {
+            name: "key"
+            optionName: "key"
+            title: "Key"
+            type: "text"
+            required: true
+            serverDataBindings: true
+            help: "Enter the object key (file path) to delete."
+          }
+
+          {
+            name: "endpoint"
+            optionName: "endpoint"
+            title: "Custom Endpoint"
+            type: "text"
+            required: false
+            defaultValue: ""
+            serverDataBindings: true
+            help: "Enter custom endpoint if using S3-compatible storage."
+          }
+
+          {
+            name: "forcePathStyle"
+            optionName: "forcePathStyle"
+            title: "Force Path Style"
+            type: "boolean"
+            defaultValue: false
+            help: "Enable if using custom S3-compatible storage."
+          }
+
+        ]
+      },
+
+      {
+        group: "S3 Credentials"
+        variables: [
+
+          {
+            name: "accessKeyId"
+            optionName: "accessKeyId"
+            title: "Access Key ID"
+            type: "text"
+            required: true
+            serverDataBindings: true
+            help: "Enter the S3 access key ID."
+          }
+
+          {
+            name: "secretAccessKey"
+            optionName: "secretAccessKey"
+            title: "Secret Access Key"
+            type: "text"
+            required: true
+            serverDataBindings: true
+            help: "Enter the S3 secret access key."
+          }
+
+          {
+            name: "region"
+            optionName: "region"
+            title: "Region"
+            type: "text"
+            required: false
+            defaultValue: "us-east-1"
+            serverDataBindings: true
+            help: "Enter the S3 region."
+          }
+
+        ]
+      },
+
+      {
+        group: "Output"
+        variables: [
+          {
+            name: "output"
+            optionName: "output"
+            title: "Output"
+            type: "boolean"
+            defaultValue: true
+            initValue: true
+          }
+        ]
+      }
+
+    ]
   }
-
-  properties: [
-
-    {
-      group: "S3 Details"
-      variables: [
-
-        {
-          name: "provider"
-          optionName: "provider"
-          title: "Provider"
-          type: "droplist"
-          required: true
-          defaultValue: "aws"
-          values: [
-            { title: "AWS", value: "aws", hide: ["endpoint"] }
-            { title: "Custom", value: "custom", show: ["endpoint"] }
-          ]
-          help: "Choose your S3 Provider."
-        }
-
-        {
-          name: "name"
-          optionName: "name"
-          title: "Name"
-          type: "text"
-          required: true
-          defaultValue: "s3deletefile"
-          help: "This will be the name used in output."
-        }
-
-        {
-          name: "bucket"
-          optionName: "bucket"
-          title: "Bucket"
-          type: "text"
-          required: true
-          serverDataBindings: true
-          help: "Enter the S3 bucket name."
-        }
-
-        {
-          name: "key"
-          optionName: "key"
-          title: "Key"
-          type: "text"
-          required: true
-          serverDataBindings: true
-          help: "Enter the object key (file path) to delete."
-        }
-
-        {
-          name: "endpoint"
-          optionName: "endpoint"
-          title: "Custom Endpoint"
-          type: "text"
-          required: false
-          defaultValue: ""
-          serverDataBindings: true
-          help: "Enter custom endpoint if using S3-compatible storage."
-        }
-
-        {
-          name: "forcePathStyle"
-          optionName: "forcePathStyle"
-          title: "Force Path Style"
-          type: "boolean"
-          defaultValue: false
-          help: "Enable if using custom S3-compatible storage."
-        }
-
-      ]
-    },
-
-    {
-      group: "S3 Credentials"
-      variables: [
-
-        {
-          name: "accessKeyId"
-          optionName: "accessKeyId"
-          title: "Access Key ID"
-          type: "text"
-          required: true
-          serverDataBindings: true
-          help: "Enter the S3 access key ID."
-        }
-
-        {
-          name: "secretAccessKey"
-          optionName: "secretAccessKey"
-          title: "Secret Access Key"
-          type: "text"
-          required: true
-          serverDataBindings: true
-          help: "Enter the S3 secret access key."
-        }
-
-        {
-          name: "region"
-          optionName: "region"
-          title: "Region"
-          type: "text"
-          required: false
-          defaultValue: "us-east-1"
-          serverDataBindings: true
-          help: "Enter the S3 region."
-        }
-
-      ]
-    },
-
-    {
-      group: "Output"
-      variables: [
-        {
-          name: "output"
-          optionName: "output"
-          title: "Output"
-          type: "boolean"
-          defaultValue: true
-          initValue: true
-        }
-      ]
-    }
-
-  ]
-}
-
-
 ]

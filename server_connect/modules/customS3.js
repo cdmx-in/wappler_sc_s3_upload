@@ -106,6 +106,102 @@ exports.s3_put_object = async function (options) {
   };
 };
 
+exports.s3_put_objects = async function (options) {
+  const Files = this.parseRequired(options.files, 'array', 'Files input array is required.');
+  const Bucket = this.parseRequired(options.bucket, 'string', 'Bucket is required.');
+  const baseKey = this.parseOptional(options.baseKey, 'string', '');
+  const keyPattern = this.parseOptional(options.keyPattern, 'string', 'filename');
+  const ACL = this.parseOptional(options.acl, 'string', undefined);
+  const useFilePath = this.parseOptional(options.useFilePath, 'boolean', false);
+
+  // reuse shared config builder
+  const { config, region, provider, forcePathStyle } = buildS3Config(options, this);
+  const s3 = new S3(config);
+
+  try {
+    let counter = 0;
+    const timestamp = Date.now();
+
+    const uploadResults = await Promise.all(
+      Files.map(async (fileInfo) => {
+        const filename = path.basename(fileInfo.file);
+
+        // ---------- key generation ----------
+        let Key;
+        switch (keyPattern) {
+          case 'increment':
+            counter++;
+            Key = `${baseKey}${counter}`;
+            break;
+
+          case 'timestamp':
+            Key = `${baseKey}${timestamp}`;
+            break;
+
+          case 'filename':
+          default:
+            Key = `${baseKey}${filename}`;
+        }
+
+        // normalize key
+        Key = Key.replace(/\/+/g, '/').replace(/^\//, '');
+
+        // ---------- file source ----------
+        const filePath = useFilePath
+          ? path.join(process.cwd(), fileInfo.file)
+          : this.req.files[fileInfo.file].tempFilePath;
+
+        const Body = fs.createReadStream(filePath);
+
+        const ContentType =
+          fileInfo.contentType ||
+          mime.lookup(Key) ||
+          'application/octet-stream';
+
+        const ContentDisposition = fileInfo.contentDisposition;
+
+        // ---------- upload ----------
+        const command = new PutObjectCommand({
+          Bucket,
+          Key,
+          Body,
+          ContentType,
+          ACL,
+          ContentDisposition
+        });
+
+        const result = await s3.send(command);
+
+        // ---------- url ----------
+        const url = buildFileUrl({
+          endpoint: config.endpoint,
+          bucket: Bucket,
+          key: Key,
+          region,
+          provider,
+          forcePathStyle
+        });
+
+        return {
+          ...result,
+          url,
+          bucket: Bucket,
+          key: Key,
+          originalFile: fileInfo.file
+        };
+      })
+    );
+
+    return {
+      success: true,
+      results: uploadResults
+    };
+
+  } catch (error) {
+    throw new Error(`Failed to upload files to S3: ${error.message}`);
+  }
+};
+
 exports.s3_list_files = async function (options) {
   const Bucket = this.parseRequired(options.bucket, 'string', 'Bucket is required.');
   const Prefix = this.parseOptional(options.prefix, 'string', '');
@@ -140,11 +236,12 @@ exports.s3_copy_object = async function (options) {
 
   const s3 = getS3Client(options, this);
 
-  return s3.send(new CopyObjectCommand({
+  await s3.send(new CopyObjectCommand({
       Bucket: DstBucket,
       Key: DstKey,
       CopySource: `${SrcBucket}/${SrcKey}`
   }));
+  return { success: true, bucket: DstBucket, SrcKey: SrcKey, DstKey: DstKey};
 };
 
 exports.s3_delete_file = async function (options) {
