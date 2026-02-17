@@ -1,6 +1,6 @@
 {
   "name": "@cdmx/wappler_sc_s3_upload",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "This suite of S3 actions allows you to interact with Amazon S3 or custom S3 providers through Wappler's Server Connect. These actions enable you to:\n1. Upload files to S3 with a signed URL (Custom S3 Signed Upload).\n2. Download files from S3 using a signed URL (Custom S3 Signed Download).\n3. Put a file into an S3 bucket (Custom S3 Put File).\n4. Put multiple files into an S3 bucket (Custom S3 Multiple Files Upload).",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
