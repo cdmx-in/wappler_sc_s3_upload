@@ -204,7 +204,7 @@ exports.s3_put_objects = async function (options) {
 
 exports.s3_list_files = async function (options) {
   const Bucket = this.parseRequired(options.bucket, 'string', 'Bucket is required.');
-  const Prefix = this.parseOptional(options.prefix, 'string', '');
+  const Prefix = this.parseOptional(options.prefix, 'string', 'Prefix is required.');
 
   const { config, region, provider, forcePathStyle } = buildS3Config(options, this);
   const s3 = new S3(config);
