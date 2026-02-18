@@ -234,23 +234,39 @@ exports.s3_copy_object = async function (options) {
   const DstBucket = this.parseRequired(options.dstBucket, 'string', 'Destination Bucket is required.');
   const DstKey = this.parseRequired(options.dstKey, 'string', 'Destination Key is required.');
 
+  if (SrcKey === DstKey) {
+    throw new Error('Source and destination keys must be different.');
+  }
   const s3 = getS3Client(options, this);
 
-  await s3.send(new CopyObjectCommand({
+  try {
+    const result = await s3.send(new CopyObjectCommand({
       Bucket: DstBucket,
       Key: DstKey,
       CopySource: `${SrcBucket}/${SrcKey}`
-  }));
-  return { success: true, bucket: DstBucket, SrcKey: SrcKey, DstKey: DstKey};
-};
+    }));
+
+    return {
+      success: result?.$metadata?.httpStatusCode === 200,
+    };
+
+  } catch (err) {
+    throw new Error(`S3 copy failed: ${err.message}`);
+  }
+}; 
 
 exports.s3_delete_file = async function (options) {
   const Bucket = this.parseRequired(options.bucket, 'string', 'Bucket is required.');
   const Key = this.parseRequired(options.key, 'string', 'Key is required.');
-
   const s3 = getS3Client(options, this);
+  try {
+    const result = await s3.send(new DeleteObjectCommand({ Bucket, Key }));
 
-  await s3.send(new DeleteObjectCommand({ Bucket, Key }));
+    return {
+      success: result?.$metadata?.httpStatusCode === 204
+    };
 
-  return { success: true, bucket: Bucket, key: Key };
+  } catch (err) {
+    throw new Error(`S3 delete failed: ${err.message}`);
+  }
 };
